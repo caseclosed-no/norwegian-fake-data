@@ -1,21 +1,21 @@
 name: Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
 
 permissions:
   contents: read
 
 concurrency:
-  group: pypi-${{ github.event.release.tag_name }}
+  group: pypi-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   checks:
     uses: ./.github/workflows/ci.yml
     with:
-      release_tag: ${{ github.event.release.tag_name }}
+      release_tag: ${{ github.ref_name }}
 
   publish:
     needs: checks

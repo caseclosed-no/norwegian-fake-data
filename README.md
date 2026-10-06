@@ -13,27 +13,24 @@ creators of printed murder mystery games.
 ## Get started
 
 You'll need Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
-From this checkout:
+Run commands with `uvx`, without a permanent installation:
 
 ```console
-uv run norwegian-fake-data phone
-uv run norwegian-fake-data fnr --birthday 1987 5 17
-uv run norwegian-fake-data plate --count 5
-uv run norwegian-fake-data person --age 42 --vehicle
+uvx norwegian-fake-data phone
+uvx norwegian-fake-data fnr --birthday 1987 5 17
+uvx norwegian-fake-data plate --count 5
+uvx norwegian-fake-data person --age 42 --vehicle
 ```
 
-Once published to PyPI, use `uvx norwegian-fake-data` from any directory, or
-install it with `uv tool install norwegian-fake-data`. Until then, you can run
-`uvx --from . norwegian-fake-data` from the checkout.
-
-The examples below use the installed command. Add `uv run` to run them locally.
+For a permanent installation, use `uv tool install norwegian-fake-data`.
+To pin a release, use `uvx norwegian-fake-data@0.1.0 phone`.
 
 ## Phone numbers
 
 ```console
-norwegian-fake-data phone --count 10 --unique
-norwegian-fake-data phone --international
-norwegian-fake-data phone --international --style compact
+uvx norwegian-fake-data phone --count 10 --unique
+uvx norwegian-fake-data phone --international
+uvx norwegian-fake-data phone --international --style compact
 ```
 
 Numbers come from Nkom's reserved TV/film range, `68050000–68059999`.
@@ -45,9 +42,9 @@ optional `+47` prefix.
 Choose a birthday or an age:
 
 ```console
-norwegian-fake-data fnr --birthday 1987 5 17
-norwegian-fake-data fnr --age 35 --as-of 2026-10-06
-norwegian-fake-data fnr --age 35 --exact-age --as-of 2026-10-06
+uvx norwegian-fake-data fnr --birthday 1987 5 17
+uvx norwegian-fake-data fnr --age 35 --as-of 2026-10-06
+uvx norwegian-fake-data fnr --age 35 --exact-age --as-of 2026-10-06
 ```
 
 `--age 35` picks a random birthday for someone aged 35 on the reference date.
@@ -63,7 +60,7 @@ Both modes produce fictional identifiers:
 | `synthetic` | Month increased by 80, following Skatteetaten's test-data convention |
 
 ```console
-norwegian-fake-data fnr --birthday 1987 5 17 --mode synthetic
+uvx norwegian-fake-data fnr --birthday 1987 5 17 --mode synthetic
 ```
 
 Supported birth years are 1854–2039. February 29 birthdays advance in age on
@@ -73,9 +70,9 @@ mode, and reference date alongside the number.
 ## License plates
 
 ```console
-norwegian-fake-data plate --count 5 --unique
-norwegian-fake-data plate --prefix QB
-norwegian-fake-data plate --prefix QC --compact
+uvx norwegian-fake-data plate --count 5 --unique
+uvx norwegian-fake-data plate --prefix QB
+uvx norwegian-fake-data plate --prefix QC --compact
 ```
 
 Plates use `QA`, `QB`, or `QC` followed by five digits, such as `QB 12345`.
@@ -85,7 +82,7 @@ checked on 2026-10-06; they are not an officially reserved film range.
 ## Character records
 
 ```console
-norwegian-fake-data person --age 42 --count 6 --unique --vehicle \
+uvx norwegian-fake-data person --age 42 --count 6 --unique --vehicle \
   --as-of 2024-11-15 --seed 73 --format json > characters.json
 ```
 
@@ -111,9 +108,9 @@ Output defaults to Rich in a terminal and plain text when piped. Use a fixed
 when opening CSV files in a spreadsheet to keep leading zeros.
 
 ```console
-norwegian-fake-data phone --count 20 --format csv > phones.csv
-norwegian-fake-data --help
-norwegian-fake-data fnr --help
+uvx norwegian-fake-data phone --count 20 --format csv > phones.csv
+uvx norwegian-fake-data --help
+uvx norwegian-fake-data fnr --help
 ```
 
 ## Using it from Python
@@ -139,6 +136,9 @@ print(records[0].fnr, records[0].birthday)
 
 ## Development and publishing
 
+From a checkout, run the CLI with `uvx --from . norwegian-fake-data` and use
+these commands for development:
+
 ```console
 uv sync --locked
 uv run pytest
@@ -149,9 +149,17 @@ uv run twine check --strict dist/*
 ```
 
 CI runs lint, tests, and the package build once on Ubuntu with Python 3.11.
-Publishing a GitHub release tagged `v<VERSION>` runs the checks and uploads the
-built package to PyPI. The tag must match `pyproject.toml`; run `uv lock` after
-updating the version.
+Pushing a version tag runs the checks and publishes the package to PyPI.
+Set the version in `pyproject.toml`, run `uv lock`, then commit and push before
+tagging that commit. For version `0.1.0`:
+
+```console
+git tag -a v0.1.0 -m "Release 0.1.0"
+git push origin v0.1.0
+```
+
+The tag must match the package version. Use a new version and tag for each release.
+After publishing, run `uvx --refresh norwegian-fake-data --version` to get the latest.
 
 Publishing uses [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
 from `caseclosed-no/norwegian-fake-data` through `release.yml`.
