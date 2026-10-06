@@ -3,6 +3,7 @@ import io
 import json
 
 import pytest
+from rich.text import Text
 from typer.testing import CliRunner
 
 from norwegian_fake_data import __version__
@@ -83,10 +84,14 @@ def test_exact_age_cli():
 
 @pytest.mark.parametrize("command", ["fnr", "person"])
 def test_valid_mode_is_rejected_by_cli(command):
-    result = runner.invoke(app, [command, "--age", "35", "--mode", "valid"])
+    result = runner.invoke(
+        app,
+        [command, "--age", "35", "--mode", "valid"],
+        env={"FORCE_COLOR": "1", "TERM": "xterm-256color"},
+    )
     assert result.exit_code == 2
     assert not result.stdout
-    assert "Invalid value for '--mode'" in result.stderr
+    assert "Invalid value for '--mode'" in Text.from_ansi(result.stderr).plain
 
 
 @pytest.mark.parametrize("command", ["fnr", "person"])
@@ -120,5 +125,5 @@ def test_errors_are_stderr_without_partial_data(args, fragment):
     result = runner.invoke(app, args)
     assert result.exit_code == 2
     assert not result.stdout
-    assert fragment in result.stderr
+    assert fragment in Text.from_ansi(result.stderr).plain
     assert "Traceback" not in result.stderr

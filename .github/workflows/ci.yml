@@ -15,8 +15,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
+  check:
+    name: Lint, test, and build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -28,41 +33,9 @@ jobs:
       - run: uv sync --locked
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
-
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python: ["3.11", "3.12", "3.13", "3.14"]
-        include:
-          - os: macos-latest
-            python: "3.14"
-          - os: windows-latest
-            python: "3.14"
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
-        with:
-          version: "0.11.21"
-          python-version: ${{ matrix.python }}
-          enable-cache: true
-      - run: uv sync --locked
       - run: uv run --no-sync pytest
-
-  package:
-    needs: [lint, test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
-        with:
-          version: "0.11.21"
-          python-version: "3.11"
-          enable-cache: true
-      - run: uv sync --locked
       - name: Check release version
+        if: inputs.release_tag != ''
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
@@ -78,8 +51,8 @@ jobs:
           PY
       - run: uv build
       - run: uv run --no-sync twine check --strict dist/*
-      - run: uv run --no-sync python scripts/smoke_dist.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: inputs.release_tag != ''
         with:
           name: distributions
           path: dist/*

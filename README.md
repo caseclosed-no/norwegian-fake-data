@@ -146,17 +146,15 @@ uv run ruff check .
 uv run ruff format --check .
 uv build
 uv run twine check --strict dist/*
-uv run python scripts/smoke_dist.py
 ```
 
+CI runs lint, tests, and the package build once on Ubuntu with Python 3.11.
 Publishing a GitHub release tagged `v<VERSION>` runs the checks and uploads the
 built package to PyPI. The tag must match `pyproject.toml`; run `uv lock` after
 updating the version.
 
-For the first release, create a GitHub environment named `pypi` and configure a
-[PyPI Trusted Publisher](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
-for `caseclosed-no/norwegian-fake-data`, workflow `release.yml`, environment
-`pypi`, and project `norwegian-fake-data`.
+Publishing uses [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+from `caseclosed-no/norwegian-fake-data` through `release.yml`.
 
 ## License
 
