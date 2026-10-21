@@ -108,11 +108,15 @@ def check_digits(first_nine: str) -> str | None:
     return f"{k1}{k2}"
 
 
-def _number_pool(birthday: date, mode: FnrMode) -> list[str]:
+def _number_pool(
+    birthday: date, mode: FnrMode, sex: Literal["female", "male"] | None = None
+) -> list[str]:
     month = birthday.month + (80 if mode == "synthetic" else 0)
     prefix = f"{birthday.day:02d}{month:02d}{birthday.year % 100:02d}"
     values = []
     for individual in individual_numbers(birthday.year):
+        if sex is not None and individual % 2 != (sex == "male"):
+            continue
         first_nine = f"{prefix}{individual:03d}"
         checks = check_digits(first_nine)
         if checks is not None:
@@ -132,6 +136,7 @@ def generate_fnrs(
     mode: FnrMode = "prop",
     seed: int | None = None,
     unique: bool = False,
+    sex: Literal["female", "male"] | None = None,
 ) -> list[FnrRecord]:
     """Generate fictional FNR records in prop or synthetic mode.
 
@@ -141,12 +146,14 @@ def generate_fnrs(
     validate_count(count)
     if mode not in ("prop", "synthetic"):
         raise ValueError("mode must be prop or synthetic.")
+    if sex not in (None, "female", "male"):
+        raise ValueError("sex must be female or male.")
     reference = as_of or date.today()
     days = birthday_pool(birthday=birthday, age=age, exact_age=exact_age, as_of=reference)
     rng = random.Random(seed)
     pools: dict[date, list[str]] = {}
     if unique:
-        pools = {day: _number_pool(day, mode) for day in days}
+        pools = {day: _number_pool(day, mode, sex) for day in days}
         capacity = sum(len(pool) for pool in pools.values())
         if count > capacity:
             raise ValueError(
@@ -157,7 +164,7 @@ def generate_fnrs(
     for _ in range(count):
         day = rng.choice(available_days)
         if day not in pools:
-            pools[day] = _number_pool(day, mode)
+            pools[day] = _number_pool(day, mode, sex)
         pool = pools[day]
         # Sampling a day first preserves a uniform birthday distribution. For
         # unique batches, remove used candidates without unbounded retry loops.

@@ -21,6 +21,7 @@ runner = CliRunner()
         ["fnr", "--help"],
         ["plate", "--help"],
         ["person", "--help"],
+        ["name", "--help"],
     ],
 )
 def test_help(args):
@@ -39,6 +40,7 @@ def test_version():
     "command,args,key",
     [
         ("phone", [], "phone"),
+        ("name", ["--age", "70", "--as-of", "2026-10-21"], "name"),
         ("plate", [], "plate"),
         ("fnr", ["--birthday", "2000", "1", "1"], "fnr"),
         ("person", ["--age", "35", "--vehicle"], "fnr"),
@@ -127,3 +129,57 @@ def test_errors_are_stderr_without_partial_data(args, fragment):
     assert not result.stdout
     assert fragment in Text.from_ansi(result.stderr).plain
     assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize("command", ["name", "person"])
+def test_name_categories_and_fallback_cli(command):
+    result = runner.invoke(
+        app,
+        [
+            command,
+            "--birthday",
+            "1854",
+            "1",
+            "1",
+            "--as-of",
+            "1900-01-01",
+            "--category",
+            "female",
+            "--name-fallback",
+            "nearest",
+            "--format",
+            "json",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    row = json.loads(result.stdout)[0]
+    assert row["category"] == "female"
+    assert row["first_name_year"] == 1880 and row["first_name_approximate"]
+    assert row["surname_year"] == 2018 and row["surname_approximate"]
+    result = runner.invoke(app, [command, "--birthday", "1854", "1", "1"])
+    assert result.exit_code == 2
+    assert not result.stdout
+    error = Text.from_ansi(result.stderr).plain
+    assert "--name-fallback" in error and "nearest" in error
+
+
+def test_plain_names_are_one_full_name_per_line():
+    result = runner.invoke(
+        app,
+        [
+            "name",
+            "--age",
+            "42",
+            "--as-of",
+            "2026-10-21",
+            "--seed",
+            "73",
+            "--count",
+            "3",
+            "--format",
+            "plain",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert len(result.stdout.splitlines()) == 3
+    assert all(" " in line and "\t" not in line for line in result.stdout.splitlines())

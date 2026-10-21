@@ -14,6 +14,7 @@ from . import __version__
 from .common import MAX_COUNT
 from .fnr import generate_fnrs
 from .identifiers import generate_phones, generate_plates
+from .names import generate_names
 from .output import OutputFormat, render
 from .people import generate_people
 
@@ -61,6 +62,28 @@ class Mode(StrEnum):
 class PhoneStyle(StrEnum):
     spaced = "spaced"
     compact = "compact"
+
+
+class Category(StrEnum):
+    female = "female"
+    male = "male"
+    either = "either"
+
+
+class NameFallbackOption(StrEnum):
+    error = "error"
+    nearest = "nearest"
+
+
+CategoryOption = Annotated[
+    Category, typer.Option(help="SSB first-name category; either uses both.")
+]
+NameFallback = Annotated[
+    NameFallbackOption,
+    typer.Option(
+        "--name-fallback", help="Birth years outside SSB coverage: error or nearest year."
+    ),
+]
 
 
 ModeOption = Annotated[
@@ -180,6 +203,33 @@ def fnr(
 
 
 @app.command()
+def name(
+    birthday: Birthday = None,
+    age: Age = None,
+    exact_age: ExactAge = False,
+    as_of: AsOf = None,
+    category: CategoryOption = Category.either,
+    name_fallback: NameFallback = NameFallbackOption.error,
+    count: Count = 1,
+    seed: Seed = None,
+    output: Format = None,
+) -> None:
+    """Sample SSB-weighted names for a birth year, with frequency-weighted surnames."""
+    with input_errors():
+        records = generate_names(
+            count,
+            birthday=parse_birthday(birthday),
+            age=age,
+            exact_age=exact_age,
+            as_of=parse_reference(as_of),
+            category=category.value,
+            name_fallback=name_fallback.value,
+            seed=seed,
+        )
+    render([asdict(record) for record in records], value_key="name", output=output)
+
+
+@app.command()
 def person(
     birthday: Birthday = None,
     age: Age = None,
@@ -190,6 +240,8 @@ def person(
     seed: Seed = None,
     unique: Unique = False,
     output: Format = None,
+    category: CategoryOption = Category.either,
+    name_fallback: NameFallback = NameFallbackOption.error,
     vehicle: Annotated[
         bool, typer.Option("--vehicle", help="Include a fictional car plate.")
     ] = False,
@@ -206,5 +258,7 @@ def person(
             seed=seed,
             unique=unique,
             vehicle=vehicle,
+            category=category.value,
+            name_fallback=name_fallback.value,
         )
     render([asdict(record) for record in records], value_key=None, output=output)

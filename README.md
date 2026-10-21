@@ -20,10 +20,11 @@ uvx norwegian-fake-data phone
 uvx norwegian-fake-data fnr --birthday 1987 5 17
 uvx norwegian-fake-data plate --count 5
 uvx norwegian-fake-data person --age 42 --vehicle
+uvx norwegian-fake-data name --age 70 --as-of 2026-10-21 --count 10
 ```
 
 For a permanent installation, use `uv tool install norwegian-fake-data`.
-To pin a release, use `uvx norwegian-fake-data@0.1.0 phone`.
+To pin a release, use `uvx norwegian-fake-data@0.2.0 phone`.
 
 ## Phone numbers
 
@@ -79,6 +80,52 @@ Plates use `QA`, `QB`, or `QC` followed by five digits, such as `QB 12345`.
 These prefixes were absent from Statens vegvesen's published plate series when
 checked on 2026-10-06; they are not an officially reserved film range.
 
+## Names by age
+
+```console
+uvx norwegian-fake-data name --age 70 --as-of 2026-10-21 --count 10
+uvx norwegian-fake-data name --birthday 1987 5 17 --category female
+uvx norwegian-fake-data name --age 42 --as-of 2024-11-15 --seed 73 --format json
+```
+
+Names use bundled statistics from Statistics Norway (SSB), with no network calls.
+First names are sampled in proportion to the published percentage for the actual
+birth year, after resolving `--age` and `--as-of`. First-name coverage is
+1880–2025. `--category female`, `male`, or `either` selects SSB's girls' or boys'
+name categories; `either` is the default and chooses categories equally for the
+standalone `name` command. Names are sampled with replacement and may repeat or
+coincide with real names. No uniqueness option is provided for names.
+
+Surnames are independently sampled in proportion to their population counts,
+using the nearest available snapshot to the **story date** (2018–2025). These
+are population frequencies, not surname distributions by birth cohort. A story
+set before 2018 therefore uses 2018 surname frequencies as an approximation.
+First-name and surname combinations do not model family, regional, or cultural
+relationships.
+
+Birth years outside first-name coverage raise an error unless you explicitly
+choose `--name-fallback nearest`:
+
+```console
+uvx norwegian-fake-data name --birthday 1870 1 1 --as-of 1900-01-01 --name-fallback nearest
+```
+
+This keeps the birthday and uses 1880 first-name weights. Age-based requests are
+rejected if any possible birthday falls outside coverage, regardless of seed.
+The shared birthday options support years 1854–2039. JSON/CSV name records include
+the resolved birthday, age, category, `first_name_year`, `surname_year`, and
+`first_name_approximate` / `surname_approximate` flags. Flags indicate use of a
+source year different from the birth year or story year respectively; they do not
+imply that the underlying statistics cover every name. Plain output prints one
+full name per line; Rich output shows a table including the source years.
+
+SSB suppresses first-name figures below four and surname counts below 200; its
+first-name list includes names with at least 200 bearers in the previous year.
+Sampling is conditional on published positive weights, excluding missing,
+suppressed, and zero cells. The first-name series uses birth year before 2021
+and naming year from 2021 onward. Some SSB labels already contain compound names;
+these labels are preserved, but additional given names are not synthesized.
+
 ## Character records
 
 ```console
@@ -89,7 +136,12 @@ uvx norwegian-fake-data person --age 42 --count 6 --unique --vehicle \
 Each record contains a Norwegian name, birthday, age, FNR, phone, `example.com`
 email, and optional plate. It accepts the same birthday and mode options as `fnr`.
 Save the records to reuse the same details across letters, contact lists, and
-witness statements. Names are drawn from a small hand-curated list and may repeat.
+witness statements. Names use the same SSB weighting as the `name` command, and
+accept `--category` and `--name-fallback`. The first-name category matches the
+traditional sex encoding in the generated FNR; an explicit category also filters
+the FNR pool. `--unique` continues to apply only to identifiers. Structured person
+records include the name category, source years, and approximation flags.
+Seeded person names differ from releases that used the old hand-curated lists.
 
 ## Output options
 
@@ -119,6 +171,9 @@ uvx norwegian-fake-data fnr --help
 from datetime import date
 from norwegian_fake_data import generate_fnrs, generate_people, generate_phones, generate_plates
 
+from norwegian_fake_data import generate_names
+
+names = generate_names(10, age=70, as_of=date(2026, 10, 21), category="female", seed=73)
 phones = generate_phones(5, seed=42, unique=True)
 plates = generate_plates(5, seed=42, prefix="QA")
 records = generate_fnrs(age=35, as_of=date(2026, 10, 6), seed=42)
@@ -128,6 +183,11 @@ print(records[0].fnr, records[0].birthday)
 ```
 
 ## Data sources
+
+- [SSB table 10467](https://www.ssb.no/statbank/table/10467): first-name percentages by year, 1880–2025.
+- [SSB table 12891](https://www.ssb.no/statbank/table/12891): surname population counts, 2018–2025.
+  SSB statistics are adapted under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/);
+  see [the data attribution](src/norwegian_fake_data/data/README.md) for transformations and limitations.
 
 - [Nkom's numbering plan](https://nkom.no/telefoni-og-telefonnummer/telefonnummer-og-den-norske-nummerplan/alle-nummerserier-for-norske-telefonnumre): the TV/film phone range.
 - [Statens vegvesen's plate series](https://www.vegvesen.no/kjoretoy/eie-og-vedlikeholde/skilt/skiltserier/): plate format and prefix selection.
@@ -148,14 +208,19 @@ uv build
 uv run twine check --strict dist/*
 ```
 
+Refresh the bundled name statistics with `python scripts/update_names.py` (requires
+network access). The script records source update dates, retrieval date, and
+checksums in the snapshot. Review data changes and run the checks before releasing.
+The snapshot uses the existing PxWebApi v1 endpoint; generation itself stays offline.
+
 CI runs lint, tests, and the package build once on Ubuntu with Python 3.11.
 Pushing a version tag runs the checks and publishes the package to PyPI.
 Set the version in `pyproject.toml`, run `uv lock`, then commit and push before
-tagging that commit. For version `0.1.0`:
+tagging that commit. For version `0.2.0`:
 
 ```console
-git tag -a v0.1.0 -m "Release 0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "Release 0.2.0"
+git push origin v0.2.0
 ```
 
 The tag must match the package version. Use a new version and tag for each release.
@@ -166,4 +231,6 @@ from `caseclosed-no/norwegian-fake-data` through `release.yml`.
 
 ## License
 
-[MIT](LICENSE), copyright LVL UP AS.
+Code: [MIT](LICENSE), copyright LVL UP AS.
+Bundled SSB statistics: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
+attributed to Statistics Norway (SSB).
