@@ -11,8 +11,11 @@ from .data_sources import PHONE_START, PHONE_STOP
 from .fnr import FnrMode, birthday_pool, generate_fnrs
 from .identifiers import generate_phones, generate_plates
 from .names import (
+    Background,
+    BackgroundFallback,
     NameCategory,
     NameFallback,
+    NameLocale,
     sample_name,
     validate_name_options,
     validate_name_years,
@@ -32,9 +35,24 @@ class PersonRecord:
     plate: str | None
     category: str
     first_name_year: int
-    surname_year: int
+    surname_year: int | None
     first_name_approximate: bool
     surname_approximate: bool
+    name_locale: str = "no"
+    background: str = "any"
+    background_applied: str = "any"
+    nssec: int | None = None
+    sampling_method: str = "published_percentages"
+    source_geography: str = "Norway"
+    surname_geography: str = "Norway"
+    surname_method: str = "published_counts"
+    background_method: str = "none"
+    background_period: str | None = None
+    background_geography: str | None = None
+    background_matched_mass: float | None = None
+    background_cutoffs: str | None = None
+    dataset_version: str = "ssb-2026-10-21"
+    approximation_reasons: str = ""
 
 
 def generate_people(
@@ -46,6 +64,10 @@ def generate_people(
     as_of: date | None = None,
     mode: FnrMode = "prop",
     seed: int | None = None,
+    name_locale: NameLocale = "no",
+    background: Background = "any",
+    nssec: int | None = None,
+    background_fallback: BackgroundFallback = "error",
     unique: bool = False,
     vehicle: bool = False,
     category: NameCategory = "either",
@@ -57,12 +79,16 @@ def generate_people(
     combinations and may repeat or coincide with real names.
     """
     validate_count(count)
-    validate_name_options(category, name_fallback)
+    validate_name_options(
+        category, name_fallback, name_locale, background, nssec, background_fallback
+    )
     if unique and count > PHONE_STOP - PHONE_START:
         raise ValueError("Only 10,000 unique phone numbers are available for character records.")
     reference = as_of or date.today()
     days = birthday_pool(birthday=birthday, age=age, exact_age=exact_age, as_of=reference)
-    validate_name_years(days, name_fallback)
+    validate_name_years(
+        days, name_fallback, name_locale, category, background, nssec, background_fallback
+    )
     rng = random.Random(seed)
     # Child seeds keep the individual generator APIs independent of one another.
     fnrs = generate_fnrs(
@@ -91,6 +117,10 @@ def generate_people(
             category="male" if int(fnr.fnr[8]) % 2 else "female",
             name_fallback=name_fallback,
             rng=rng,
+            name_locale=name_locale,
+            background=background,
+            nssec=nssec,
+            background_fallback=background_fallback,
         )
         email_name = f"{name.first_name}.{name.last_name}".lower().translate(
             str.maketrans({"æ": "ae", "ø": "o", "å": "a"})
@@ -113,6 +143,21 @@ def generate_people(
                 name.surname_year,
                 name.first_name_approximate,
                 name.surname_approximate,
+                name_locale=name.name_locale,
+                background=name.background,
+                background_applied=name.background_applied,
+                nssec=name.nssec,
+                sampling_method=name.sampling_method,
+                source_geography=name.source_geography,
+                surname_geography=name.surname_geography,
+                surname_method=name.surname_method,
+                background_method=name.background_method,
+                background_period=name.background_period,
+                background_geography=name.background_geography,
+                background_matched_mass=name.background_matched_mass,
+                background_cutoffs=name.background_cutoffs,
+                dataset_version=name.dataset_version,
+                approximation_reasons=name.approximation_reasons,
             )
         )
     return people

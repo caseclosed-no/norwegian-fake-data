@@ -50,6 +50,19 @@ def render(rows: list[dict], *, value_key: str | None, output: OutputFormat | No
                     )
                 console.print(Panel.fit(details, title=f"Character {index}", border_style="cyan"))
             return
+        if value_key == "name":
+            # Full provenance stays in JSON/CSV; keep terminal tables readable.
+            normalized = [
+                {
+                    "name": row["name"],
+                    "category": row["category"],
+                    "locale": row["name_locale"],
+                    "source year": str(row["first_name_year"])
+                    + ("*" if row["first_name_approximate"] else ""),
+                    "background": row["background_applied"],
+                }
+                for row in normalized
+            ]
         table = Table(header_style="bold cyan", show_lines=len(normalized[0]) > 5)
         for key in normalized[0]:
             table.add_column(key.replace("_", " ").title(), overflow="fold")

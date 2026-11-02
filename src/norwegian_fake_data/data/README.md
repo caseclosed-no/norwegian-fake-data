@@ -1,5 +1,7 @@
 # SSB name statistics
 
+For US and England profiles, see [international data attribution](INTERNATIONAL.md).
+
 `names.json.gz` contains adapted statistics from Statistics Norway (SSB):
 
 - Table 10467: https://www.ssb.no/statbank/table/10467

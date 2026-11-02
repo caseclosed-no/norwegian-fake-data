@@ -19,7 +19,7 @@ from .output import OutputFormat, render
 from .people import generate_people
 
 app = typer.Typer(
-    help="Norwegian fictional data for murder mystery games. Generation works offline.",
+    help="Norwegian fictional identifiers and Norwegian/US/England names. Works offline.",
     no_args_is_help=True,
     pretty_exceptions_enable=False,
     add_completion=False,
@@ -73,16 +73,53 @@ class Category(StrEnum):
 class NameFallbackOption(StrEnum):
     error = "error"
     nearest = "nearest"
+    historical = "historical"
 
 
 CategoryOption = Annotated[
-    Category, typer.Option(help="SSB first-name category; either uses both.")
+    Category, typer.Option(help="Source first-name category; either uses both.")
 ]
 NameFallback = Annotated[
     NameFallbackOption,
     typer.Option(
-        "--name-fallback", help="Birth years outside SSB coverage: error or nearest year."
+        "--name-fallback",
+        help="Outside annual coverage: error, nearest, or England historical ranks.",
     ),
+]
+
+
+class NameLocaleOption(StrEnum):
+    no = "no"
+    us = "us"
+    england = "england"
+
+
+class BackgroundOption(StrEnum):
+    any = "any"
+    lower = "lower"
+    middle = "middle"
+    higher = "higher"
+
+
+class BackgroundFallbackOption(StrEnum):
+    error = "error"
+    unconditioned = "unconditioned"
+
+
+NameLocale = Annotated[
+    NameLocaleOption,
+    typer.Option("--name-locale", help="Name profile only; identifiers stay Norwegian."),
+]
+Background = Annotated[
+    BackgroundOption, typer.Option(help="Birth background proxy, not current income or wealth.")
+]
+BackgroundFallback = Annotated[
+    BackgroundFallbackOption,
+    typer.Option("--background-fallback", help="Unsupported background: error or omit its filter."),
+]
+Nssec = Annotated[
+    int | None,
+    typer.Option(min=1, max=7, help="England parental occupation class; replaces --background."),
 ]
 
 
@@ -210,11 +247,15 @@ def name(
     as_of: AsOf = None,
     category: CategoryOption = Category.either,
     name_fallback: NameFallback = NameFallbackOption.error,
+    name_locale: NameLocale = NameLocaleOption.no,
+    background: Background = BackgroundOption.any,
+    nssec: Nssec = None,
+    background_fallback: BackgroundFallback = BackgroundFallbackOption.error,
     count: Count = 1,
     seed: Seed = None,
     output: Format = None,
 ) -> None:
-    """Sample SSB-weighted names for a birth year, with frequency-weighted surnames."""
+    """Sample Norwegian, US, or England names for a birth year."""
     with input_errors():
         records = generate_names(
             count,
@@ -224,6 +265,10 @@ def name(
             as_of=parse_reference(as_of),
             category=category.value,
             name_fallback=name_fallback.value,
+            name_locale=name_locale.value,
+            background=background.value,
+            nssec=nssec,
+            background_fallback=background_fallback.value,
             seed=seed,
         )
     render([asdict(record) for record in records], value_key="name", output=output)
@@ -242,6 +287,10 @@ def person(
     output: Format = None,
     category: CategoryOption = Category.either,
     name_fallback: NameFallback = NameFallbackOption.error,
+    name_locale: NameLocale = NameLocaleOption.no,
+    background: Background = BackgroundOption.any,
+    nssec: Nssec = None,
+    background_fallback: BackgroundFallback = BackgroundFallbackOption.error,
     vehicle: Annotated[
         bool, typer.Option("--vehicle", help="Include a fictional car plate.")
     ] = False,
@@ -260,5 +309,9 @@ def person(
             vehicle=vehicle,
             category=category.value,
             name_fallback=name_fallback.value,
+            name_locale=name_locale.value,
+            background=background.value,
+            nssec=nssec,
+            background_fallback=background_fallback.value,
         )
     render([asdict(record) for record in records], value_key=None, output=output)
