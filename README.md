@@ -25,7 +25,7 @@ uvx norwegian-fake-data name --age 70 --as-of 2026-10-21 --count 10
 ```
 
 For a permanent installation, use `uv tool install norwegian-fake-data`.
-To pin a release, use `uvx norwegian-fake-data@0.4.0 phone`.
+To pin a release, use `uvx norwegian-fake-data@0.5.0 phone`.
 
 ## Phone numbers
 
@@ -39,17 +39,16 @@ Numbers come from Nkom's reserved TV/film range, `68050000–68059999`.
 Choose spaced output (`68 05 12 34`) or compact output (`68051234`), with an
 optional `+47` prefix.
 
-### US and UK phones (unreleased)
+### US and UK phones
 
-Run these additions from this checkout with `uv run`; published version 0.4.0
-supports Norwegian phones only.
+Version 0.5.0 adds US and UK fictional phone profiles.
 
 ```console
-uv run norwegian-fake-data phone --locale us --area-code 212
-uv run norwegian-fake-data phone --locale us --area-code 415 --international
-uv run norwegian-fake-data phone --locale uk
-uv run norwegian-fake-data phone --locale uk --kind landline --city london
-uv run norwegian-fake-data phone --locale uk --international --style compact
+uvx norwegian-fake-data phone --locale us --area-code 212
+uvx norwegian-fake-data phone --locale us --area-code 415 --international
+uvx norwegian-fake-data phone --locale uk
+uvx norwegian-fake-data phone --locale uk --kind landline --city london
+uvx norwegian-fake-data phone --locale uk --international --style compact
 ```
 
 Norway remains the default, with its existing seed results. US output defaults to
@@ -78,12 +77,12 @@ They are not structurally invalid strings. Phone JSON/CSV now include locale,
 profile, area code/city, fictional method, source URLs, and verification date;
 plain output remains one number per line.
 
-## Impossible crypto addresses (unreleased)
+## Impossible crypto addresses
 
 ```console
-uv run norwegian-fake-data wallet --chain ethereum --count 5
-uv run norwegian-fake-data wallet --chain bitcoin --seed 42 --unique --count 10
-uv run norwegian-fake-data wallet --chain monero --format json
+uvx norwegian-fake-data wallet --chain ethereum --count 5
+uvx norwegian-fake-data wallet --chain bitcoin --seed 42 --unique --count 10
+uvx norwegian-fake-data wallet --chain monero --format json
 ```
 
 `--chain` is required. All three profiles preserve recognizable mainnet prefixes
@@ -452,7 +451,7 @@ print(records[0].fnr, records[0].birthday)
 `generate_phones()` and `generate_wallet_addresses()` return strings.
 `generate_phone_records()` and `generate_wallet_address_records()` return frozen
 records with provenance (the latter is also exported from `norwegian_fake_data`).
-The international phone and wallet APIs above are unreleased additions.
+The international phone and wallet APIs above are available from version 0.5.0.
 
 ## Data sources
 
@@ -518,11 +517,11 @@ to the package.
 CI runs lint, tests, and the package build once on Ubuntu with Python 3.11.
 Pushing a version tag runs the checks and publishes the package to PyPI.
 Set the version in `pyproject.toml`, run `uv lock`, then commit and push before
-tagging that commit. For version `0.4.0`:
+tagging that commit. For version `0.5.0`:
 
 ```console
-git tag -a v0.4.0 -m "Release 0.4.0"
-git push origin v0.4.0
+git tag -a v0.5.0 -m "Release 0.5.0"
+git push origin v0.5.0
 ```
 
 The tag must match the package version. Use a new version and tag for each release.
