@@ -24,7 +24,7 @@ uvx norwegian-fake-data name --age 70 --as-of 2026-10-21 --count 10
 ```
 
 For a permanent installation, use `uv tool install norwegian-fake-data`.
-To pin a release, use `uvx norwegian-fake-data@0.3.0 phone`.
+To pin a release, use `uvx norwegian-fake-data@0.3.1 phone`.
 
 ## Phone numbers
 
@@ -234,7 +234,7 @@ uvx norwegian-fake-data person --name-locale us --age 42 --as-of 2026-11-02 --se
 ```
 
 Norwegian seeded names and identifiers are preserved from version 0.2.0.
-Version 0.3.0 adds provenance columns to name/person JSON and CSV exports (and
+Version 0.3.1 adds provenance columns to name/person JSON and CSV exports (and
 tab-separated person output); consumers should use field names rather than column
 positions. `surname_year` is now nullable for curated England surnames.
 
@@ -327,11 +327,11 @@ to the package.
 CI runs lint, tests, and the package build once on Ubuntu with Python 3.11.
 Pushing a version tag runs the checks and publishes the package to PyPI.
 Set the version in `pyproject.toml`, run `uv lock`, then commit and push before
-tagging that commit. For version `0.3.0`:
+tagging that commit. For version `0.3.1`:
 
 ```console
-git tag -a v0.3.0 -m "Release 0.3.0"
-git push origin v0.3.0
+git tag -a v0.3.1 -m "Release 0.3.1"
+git push origin v0.3.1
 ```
 
 The tag must match the package version. Use a new version and tag for each release.

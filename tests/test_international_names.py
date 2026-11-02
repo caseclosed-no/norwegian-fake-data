@@ -5,6 +5,7 @@ from collections import Counter
 from datetime import date
 
 import pytest
+from rich.text import Text
 from typer.testing import CliRunner
 
 from norwegian_fake_data import generate_names, generate_people, name_profiles
@@ -254,7 +255,8 @@ def test_international_cli_exports(command, output):
     assert row["source_geography"] == "England and Wales"
 
 
-def test_cli_background_failure_has_no_partial_output():
+@pytest.mark.parametrize("color", ["0", "1"])
+def test_cli_background_failure_has_no_partial_output(color):
     result = CliRunner().invoke(
         app,
         [
@@ -270,6 +272,7 @@ def test_cli_background_failure_has_no_partial_output():
             "--name-fallback",
             "historical",
         ],
+        env={"FORCE_COLOR": color, "TERM": "xterm-256color"},
     )
     assert result.exit_code == 2 and not result.stdout
-    assert "background-fallback" in result.stderr
+    assert "background-fallback" in Text.from_ansi(result.stderr).plain

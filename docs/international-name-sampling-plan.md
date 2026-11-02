@@ -2,7 +2,7 @@
 
 Research checked: 2 November 2026. Original proposal, with implementation notes below.
 
-Implementation note (version 0.3.0): the locale and background features described
+Implementation note (version 0.3.1): the locale and background features described
 below are now implemented. Verified bundled ONS annual files cover 1996–2024;
 the combined workbook actually ends in 2021, so separate 2022–2024 files supplement
 it. US surnames use the 2020 snapshot only. See README.md for the shipped interface
