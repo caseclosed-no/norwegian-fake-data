@@ -4,7 +4,8 @@ import random
 from typing import Literal
 
 from .common import sample_pool
-from .data_sources import PHONE_START, PHONE_STOP, PLATE_PREFIXES, PLATE_START, PLATE_STOP
+from .data_sources import PHONE_START, PHONE_STOP
+from .plates import generate_plates as generate_plates  # Retain the existing import path.
 
 PhoneStyle = Literal["spaced", "compact"]
 
@@ -29,23 +30,3 @@ def generate_phones(
             value = ("+47 " if style == "spaced" else "+47") + value
         values.append(value)
     return values
-
-
-def generate_plates(
-    count: int = 1,
-    *,
-    seed: int | None = None,
-    unique: bool = False,
-    prefix: str | None = None,
-    compact: bool = False,
-) -> list[str]:
-    """Use only reviewed prefixes absent from the published Norwegian series."""
-    if prefix is not None:
-        prefix = prefix.upper()
-        if prefix not in PLATE_PREFIXES:
-            raise ValueError(f"prefix must be one of: {', '.join(PLATE_PREFIXES)}.")
-    prefixes = (prefix,) if prefix else PLATE_PREFIXES
-    span = PLATE_STOP - PLATE_START
-    indices = sample_pool(range(len(prefixes) * span), count, unique, random.Random(seed))
-    separator = "" if compact else " "
-    return [f"{prefixes[i // span]}{separator}{PLATE_START + i % span}" for i in indices]

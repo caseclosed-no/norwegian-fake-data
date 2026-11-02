@@ -13,13 +13,15 @@ import typer
 from . import __version__
 from .common import MAX_COUNT
 from .fnr import generate_fnrs
-from .identifiers import generate_phones, generate_plates
+from .identifiers import generate_phones
 from .names import generate_names
+from .national_ids import generate_ninos, generate_ssns
 from .output import OutputFormat, render
 from .people import generate_people
+from .plates import generate_plate_records
 
 app = typer.Typer(
-    help="Norwegian fictional identifiers and Norwegian/US/England names. Works offline.",
+    help="Fictional Norwegian/US/UK identifiers and international names. Works offline.",
     no_args_is_help=True,
     pretty_exceptions_enable=False,
     add_completion=False,
@@ -62,6 +64,16 @@ class Mode(StrEnum):
 class PhoneStyle(StrEnum):
     spaced = "spaced"
     compact = "compact"
+
+
+class LocaleOption(StrEnum):
+    no = "no"
+    us = "us"
+    uk = "uk"
+
+
+Locale = Annotated[LocaleOption, typer.Option(help="Identifier locale. Default: no (Norway).")]
+Compact = Annotated[bool, typer.Option("--compact", help="Remove standard separators.")]
 
 
 class Category(StrEnum):
@@ -137,15 +149,19 @@ def input_errors() -> Iterator[None]:
         raise typer.BadParameter(str(exc)) from None
 
 
-def parse_reference(value: str | None) -> date:
+def parse_optional_date(value: str | None, option: str) -> date | None:
     if value is None:
-        return date.today()
+        return None
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value, flags=re.ASCII):
-        raise ValueError("--as-of must be YYYY-MM-DD.")
+        raise ValueError(f"{option} must be YYYY-MM-DD.")
     try:
         return date.fromisoformat(value)
     except ValueError:
-        raise ValueError("--as-of must be a real calendar date in YYYY-MM-DD format.") from None
+        raise ValueError(f"{option} must be a real calendar date in YYYY-MM-DD format.") from None
+
+
+def parse_reference(value: str | None) -> date:
+    return parse_optional_date(value, "--as-of") or date.today()
 
 
 def parse_birthday(value: tuple[int, int, int] | None) -> date | None:
@@ -202,14 +218,58 @@ def plate(
     prefix: Annotated[
         str | None, typer.Option(help="Choose a reviewed prefix: QA, QB, or QC.")
     ] = None,
-    compact: Annotated[
-        bool, typer.Option("--compact", help="Omit the space before the digits.")
-    ] = False,
+    compact: Compact = False,
+    locale: Locale = LocaleOption.no,
+    state: Annotated[str | None, typer.Option(help="US state; verified profile: CA.")] = None,
+    region: Annotated[str | None, typer.Option(help="UK region; verified profile: gb.")] = None,
+    registered_on: Annotated[
+        str | None, typer.Option(help="GB first-registration date YYYY-MM-DD; defaults to --as-of.")
+    ] = None,
+    as_of: AsOf = None,
 ) -> None:
-    """Generate car plates with prefixes absent from the reviewed official series."""
+    """Generate fictional passenger-car plates for Norway, California, or Great Britain."""
     with input_errors():
-        values = generate_plates(count, seed=seed, unique=unique, prefix=prefix, compact=compact)
-    render([{"plate": value} for value in values], value_key="plate", output=output)
+        records = generate_plate_records(
+            count,
+            seed=seed,
+            unique=unique,
+            prefix=prefix,
+            compact=compact,
+            locale=locale.value,
+            state=state,
+            region=region,
+            registered_on=parse_optional_date(registered_on, "--registered-on"),
+            as_of=parse_reference(as_of),
+        )
+    render([asdict(record) for record in records], value_key="plate", output=output)
+
+
+@app.command()
+def ssn(
+    count: Count = 1,
+    seed: Seed = None,
+    unique: Unique = False,
+    output: Format = None,
+    compact: Compact = False,
+) -> None:
+    """Generate deliberately invalid US Social Security numbers with a 000 prefix."""
+    with input_errors():
+        records = generate_ssns(count, seed=seed, unique=unique, compact=compact)
+    render([asdict(record) for record in records], value_key="ssn", output=output)
+
+
+@app.command()
+def nino(
+    count: Count = 1,
+    seed: Seed = None,
+    unique: Unique = False,
+    output: Format = None,
+    compact: Compact = False,
+) -> None:
+    """Generate deliberately invalid UK National Insurance numbers with a QQ prefix."""
+    with input_errors():
+        records = generate_ninos(count, seed=seed, unique=unique, compact=compact)
+    render([asdict(record) for record in records], value_key="nino", output=output)
 
 
 @app.command()
@@ -291,6 +351,7 @@ def person(
     background: Background = BackgroundOption.any,
     nssec: Nssec = None,
     background_fallback: BackgroundFallback = BackgroundFallbackOption.error,
+    locale: Locale = LocaleOption.no,
     vehicle: Annotated[
         bool, typer.Option("--vehicle", help="Include a fictional car plate.")
     ] = False,
@@ -313,5 +374,6 @@ def person(
             background=background.value,
             nssec=nssec,
             background_fallback=background_fallback.value,
+            locale=locale.value,
         )
     render([asdict(record) for record in records], value_key=None, output=output)

@@ -20,6 +20,7 @@ from .names import (
     validate_name_options,
     validate_name_years,
 )
+from .plates import Locale
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,7 @@ def generate_people(
     vehicle: bool = False,
     category: NameCategory = "either",
     name_fallback: NameFallback = "error",
+    locale: Locale = "no",
 ) -> list[PersonRecord]:
     """Compose exportable records; unique applies to FNR, phone, email and plate.
 
@@ -79,6 +81,13 @@ def generate_people(
     combinations and may repeat or coincide with real names.
     """
     validate_count(count)
+    if locale not in ("no", "us", "uk"):
+        raise ValueError("locale must be no, us, or uk.")
+    if locale != "no":
+        raise ValueError(
+            "International person records need fictional phone profiles, which are not ready. "
+            "Use ssn, nino, or plate separately; --name-locale changes names only."
+        )
     validate_name_options(
         category, name_fallback, name_locale, background, nssec, background_fallback
     )

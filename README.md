@@ -1,8 +1,9 @@
 # Norwegian Fake Data
 
-A Python CLI for Norwegian fictional identifiers and character records, with
-Norwegian, US, and England name sampling for murder mystery games and props.
-Runs offline, with Rich terminal output and JSON/CSV exports.
+A Python CLI for fictional identifiers and character records for murder mystery
+games and props. Includes Norwegian identifiers, US Social Security numbers and
+California plates, UK National Insurance numbers and GB plates, and Norwegian,
+US, and England names. Runs offline, with Rich output and JSON/CSV exports.
 
 ## Proudly sponsored by CaseClosed
 
@@ -24,7 +25,7 @@ uvx norwegian-fake-data name --age 70 --as-of 2026-10-21 --count 10
 ```
 
 For a permanent installation, use `uv tool install norwegian-fake-data`.
-To pin a release, use `uvx norwegian-fake-data@0.3.1 phone`.
+To pin a release, use `uvx norwegian-fake-data@0.4.0 phone`.
 
 ## Phone numbers
 
@@ -77,8 +78,87 @@ uvx norwegian-fake-data plate --prefix QC --compact
 ```
 
 Plates use `QA`, `QB`, or `QC` followed by five digits, such as `QB 12345`.
-These prefixes were absent from Statens vegvesen's published plate series when
+These default Norwegian prefixes were absent from Statens vegvesen's published plate series when
 checked on 2026-10-06; they are not an officially reserved film range.
+
+### US and UK plates
+
+Choose `--locale no|us|uk`; `no` remains the default. The international profiles
+deliberately break a documented allocation rule while keeping the familiar plate
+layout. There is no valid-number mode and no fallback to unchecked random plates.
+For example:
+
+```console
+uvx norwegian-fake-data plate --locale us --state CA --count 10 --unique --seed 73
+uvx norwegian-fake-data plate --locale uk --region gb \
+  --registered-on 2022-04-18 --as-of 2026-11-02 --count 10 --seed 73
+uvx norwegian-fake-data plate --locale uk --as-of 2026-11-02 --format json
+```
+
+US plates require an explicit state. **California (`CA`) is currently the only
+supported state.** Its seven-character passenger-car profile looks like
+`2SAM123`, using only `SAM`, `FAN`, or `GAT` for the letter block. California DMV
+explicitly deletes those combinations from regular series and personalized plates.
+They are not an official film reservation. There are 27,000 unique combinations.
+The profile uses the familiar legacy layout introduced in 1980, not a simulation
+of newly issued 2026 plates or their chronological serial ranges. `--as-of` must
+be in 1980 or later. Other states, including NY and TX, are rejected until a
+documented fictional construction is available.
+
+UK plates currently support **Great Britain (`gb`: England, Scotland, Wales)**.
+The region defaults to `gb`; Northern Ireland (`ni`) is explicitly unsupported.
+Values look like `ZZ22 ABC`: `ZZ` is deliberately invalid because DVLA prohibits
+`Z` in the first two positions of current-style registrations. The serial letters
+otherwise follow the published restrictions, excluding `I` and `Q`.
+
+The two-digit age identifier follows the vehicle's `--registered-on` date:
+March–August 2026 gives `26`, September 2026–February 2027 gives `76`, and so on.
+It does not use a character's birthday. Registration defaults to `--as-of`, which
+defaults to today, and cannot be after the story date. Supported registration
+dates are 2001-09-01 through 2050-08-31; older styles and the later age-code cycle
+are rejected. Each registration period has 13,824 unique fictional plates.
+
+`--count`, `--seed`, `--unique`, `--compact`, and all output formats work for both
+profiles. `--prefix` remains Norwegian-only so the invalid international letter
+blocks cannot be overridden. `--state` is US-only; `--region` and
+`--registered-on` are UK-only. Invalid option combinations fail before output.
+Use a fixed `--as-of` for reproducible GB plate dates and structured plate records.
+
+Plate JSON/CSV now includes `locale`, `state`, `region`, `vehicle_class`,
+`plate_style`, `registered_on`, `as_of`, `fictional_method`, `invalid_reason`,
+source URLs, and the rule verification date. Plain output remains one plate per
+line. The existing Python `generate_plates()` still returns strings with unchanged
+Norwegian seeded results; `generate_plate_records()` returns the full provenance.
+These profiles describe passenger-car registration text, not rendered plate artwork
+or a guarantee that an unrelated jurisdiction could never use the same text.
+
+## US Social Security and UK National Insurance numbers
+
+The standalone `ssn` and `nino` commands always generate deliberately invalid
+values. They do not need a locale, birthday, or gender, and support `--count`,
+`--seed`, `--unique`, `--compact`, and the existing output formats:
+
+```console
+uvx norwegian-fake-data ssn --count 10 --unique --seed 73
+uvx norwegian-fake-data ssn --compact --format csv
+uvx norwegian-fake-data nino --count 10 --unique --seed 73
+uvx norwegian-fake-data nino --compact --format json
+```
+
+SSNs have the shape `000-42-7318` (compact: `000427318`). The `000` prefix is
+never allocated; SSA specifically recommends it for fictional displays. The
+remaining six digits are sampled without any connection to age or state.
+
+National Insurance numbers have the shape `QQ 12 34 56 C` (compact: `QQ123456C`).
+The suffix is A, B, C, or D, but `QQ` is impossible under HMRC prefix rules and
+is used in official examples. In unique batches the six-digit body also stays
+unique, rather than reusing a number with a different suffix. Both generators
+have a one-million-body pool and obey the shared maximum batch size of 100,000.
+
+JSON/CSV includes the number as a string, locale, fictional method, invalidity
+reason, source URL, and verification date. Plain output is one identifier per
+line; SSN leading zeros are preserved. These prop values intentionally fail real
+identifier validation. There is no option to choose an allocated prefix.
 
 ## Names by age
 
@@ -233,6 +313,12 @@ continue to use Norwegian rules. For example:
 uvx norwegian-fake-data person --name-locale us --age 42 --as-of 2026-11-02 --seed 73
 ```
 
+`person --locale no` explicitly selects the current Norwegian character record.
+`person --locale us` and `person --locale uk` fail with an explanation: full
+international records are deferred until corresponding fictional phone profiles
+are ready. Use `ssn`, `nino`, and international `plate` independently in the
+meantime; changing `--name-locale` continues to affect names only.
+
 Norwegian seeded names and identifiers are preserved from version 0.2.0.
 Version 0.3.1 adds provenance columns to name/person JSON and CSV exports (and
 tab-separated person output); consumers should use field names rather than column
@@ -267,6 +353,7 @@ from datetime import date
 from norwegian_fake_data import generate_fnrs, generate_people, generate_phones, generate_plates
 
 from norwegian_fake_data import generate_names
+from norwegian_fake_data import generate_ninos, generate_plate_records, generate_ssns
 
 names = generate_names(10, age=70, as_of=date(2026, 10, 21), category="female", seed=73)
 us_names = generate_names(
@@ -276,6 +363,16 @@ phones = generate_phones(5, seed=42, unique=True)
 plates = generate_plates(5, seed=42, prefix="QA")
 records = generate_fnrs(age=35, as_of=date(2026, 10, 6), seed=42)
 characters = generate_people(6, age=42, seed=73, vehicle=True, unique=True)
+ssns = generate_ssns(5, seed=73, unique=True)
+ninos = generate_ninos(5, seed=73, compact=True)
+california_plates = generate_plates(5, locale="us", state="CA", seed=73)
+gb_plates = generate_plate_records(
+    5,
+    locale="uk",
+    registered_on=date(2022, 4, 18),
+    as_of=date(2026, 11, 2),
+    seed=73,
+)
 
 print(records[0].fnr, records[0].birthday)
 ```
@@ -297,6 +394,14 @@ print(records[0].fnr, records[0].birthday)
 
 - [Nkom's numbering plan](https://nkom.no/telefoni-og-telefonnummer/telefonnummer-og-den-norske-nummerplan/alle-nummerserier-for-norske-telefonnumre): the TV/film phone range.
 - [Statens vegvesen's plate series](https://www.vegvesen.no/kjoretoy/eie-og-vedlikeholde/skilt/skiltserier/): plate format and prefix selection.
+- [SSA fictional-number guidance](https://secure.ssa.gov/apps10/poms.nsf/links/0110201020): `000`-prefixed SSNs.
+- [HMRC National Insurance number rules](https://www.gov.uk/hmrc-internal-manuals/national-insurance-manual/nim39110): impossible `QQ` prefix and A–D suffixes.
+- [California DMV restricted combinations](https://www.dmv.ca.gov/portal/handbook/vehicle-industry-registration-procedures-manual-2/special-plates/personalized-configurations-mandatory-refusal/): deleted `SAM`, `FAN`, and `GAT` letter blocks.
+  [DMV plate history](https://www.dmv.ca.gov/portal/uploads/2022/06/VR-Manual-Appendix-1E-accessible-5-2022.pdf): the legacy passenger layout.
+- [DVLA registration styles](https://dvlaregistrations.dvla.gov.uk/help/): prohibited regional letters and permitted serial letters.
+  [DVLA INF104](https://www.gov.uk/government/publications/vehicle-registration-numbers-and-number-plates): registration-age identifiers.
+  International identifier and plate rules were reviewed on 2026-11-02 and are
+  bundled as code constants; generation performs no network or allocation lookups.
 - [Skatteetaten's test-data documentation](https://skatteetaten.github.io/folkeregisteret-api-dokumentasjon/test-for-konsumenter/): the synthetic month offset.
 - [Skatteetaten's checksum documentation](https://skatteetaten.github.io/folkeregisteret-api-dokumentasjon/nytt-fodselsnummer-fra-2032/): checksum calculations. Prop mode changes the final checksum, which fails both the traditional and published 2032 rules.
 
@@ -327,11 +432,11 @@ to the package.
 CI runs lint, tests, and the package build once on Ubuntu with Python 3.11.
 Pushing a version tag runs the checks and publishes the package to PyPI.
 Set the version in `pyproject.toml`, run `uv lock`, then commit and push before
-tagging that commit. For version `0.3.1`:
+tagging that commit. For version `0.4.0`:
 
 ```console
-git tag -a v0.3.1 -m "Release 0.3.1"
-git push origin v0.3.1
+git tag -a v0.4.0 -m "Release 0.4.0"
+git push origin v0.4.0
 ```
 
 The tag must match the package version. Use a new version and tag for each release.

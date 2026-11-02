@@ -63,9 +63,14 @@ def render(rows: list[dict], *, value_key: str | None, output: OutputFormat | No
                 }
                 for row in normalized
             ]
+        elif value_key in ("ssn", "nino", "plate"):
+            keys = (value_key, "locale", "state", "region", "fictional_method")
+            normalized = [{key: row[key] for key in keys if key in row} for row in normalized]
         table = Table(header_style="bold cyan", show_lines=len(normalized[0]) > 5)
         for key in normalized[0]:
-            table.add_column(key.replace("_", " ").title(), overflow="fold")
+            table.add_column(
+                key.replace("_", " ").title(), overflow="fold", no_wrap=key == value_key
+            )
         for row in normalized:
             table.add_row(*("—" if value is None else str(value) for value in row.values()))
         console.print(table)
