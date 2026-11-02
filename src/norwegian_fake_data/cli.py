@@ -13,12 +13,13 @@ import typer
 from . import __version__
 from .common import MAX_COUNT
 from .fnr import generate_fnrs
-from .identifiers import generate_phones
 from .names import generate_names
 from .national_ids import generate_ninos, generate_ssns
 from .output import OutputFormat, render
 from .people import generate_people
+from .phones import generate_phone_records
 from .plates import generate_plate_records
+from .wallets import generate_wallet_address_records
 
 app = typer.Typer(
     help="Fictional Norwegian/US/UK identifiers and international names. Works offline.",
@@ -64,6 +65,17 @@ class Mode(StrEnum):
 class PhoneStyle(StrEnum):
     spaced = "spaced"
     compact = "compact"
+
+
+class PhoneKindOption(StrEnum):
+    mobile = "mobile"
+    landline = "landline"
+
+
+class ChainOption(StrEnum):
+    ethereum = "ethereum"
+    bitcoin = "bitcoin"
+    monero = "monero"
 
 
 class LocaleOption(StrEnum):
@@ -194,19 +206,54 @@ def phone(
     seed: Seed = None,
     unique: Unique = False,
     output: Format = None,
-    international: Annotated[bool, typer.Option("--international", help="Include +47.")] = False,
+    international: Annotated[
+        bool, typer.Option("--international", help="Include the country calling code.")
+    ] = False,
     style: Annotated[PhoneStyle, typer.Option(help="Phone number spacing.")] = PhoneStyle.spaced,
+    locale: Locale = LocaleOption.no,
+    area_code: Annotated[
+        str | None, typer.Option(help="Reviewed US area code; default 212.")
+    ] = None,
+    kind: Annotated[
+        PhoneKindOption | None, typer.Option(help="UK mobile (default) or landline.")
+    ] = None,
+    city: Annotated[
+        str | None, typer.Option(help="UK landline city; default generic. See README for profiles.")
+    ] = None,
 ) -> None:
-    """Generate numbers from Nkom's reserved TV/film range, 68050000–68059999."""
+    """Generate Norwegian, US, or UK numbers from reserved fictional-use ranges."""
     with input_errors():
-        values = generate_phones(
+        values = generate_phone_records(
             count,
             seed=seed,
             unique=unique,
             international=international,
             style=style.value,
+            locale=locale.value,
+            area_code=area_code,
+            kind=kind.value if kind is not None else None,
+            city=city,
         )
-    render([{"phone": value} for value in values], value_key="phone", output=output)
+    render([asdict(value) for value in values], value_key="phone", output=output)
+
+
+@app.command()
+def wallet(
+    chain: Annotated[ChainOption, typer.Option(help="ethereum, bitcoin, or monero.")],
+    count: Count = 1,
+    seed: Seed = None,
+    unique: Unique = False,
+    output: Format = None,
+) -> None:
+    """Generate impossible crypto addresses with a forbidden character in the body."""
+    with input_errors():
+        records = generate_wallet_address_records(
+            count,
+            chain=chain.value,
+            seed=seed,
+            unique=unique,
+        )
+    render([asdict(record) for record in records], value_key="address", output=output)
 
 
 @app.command()

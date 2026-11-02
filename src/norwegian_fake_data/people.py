@@ -85,8 +85,8 @@ def generate_people(
         raise ValueError("locale must be no, us, or uk.")
     if locale != "no":
         raise ValueError(
-            "International person records need fictional phone profiles, which are not ready. "
-            "Use ssn, nino, or plate separately; --name-locale changes names only."
+            "International person record schemas and identifier integration are not ready. "
+            "Use ssn, nino, phone, or plate separately; --name-locale changes names only."
         )
     validate_name_options(
         category, name_fallback, name_locale, background, nssec, background_fallback

@@ -63,8 +63,8 @@ def render(rows: list[dict], *, value_key: str | None, output: OutputFormat | No
                 }
                 for row in normalized
             ]
-        elif value_key in ("ssn", "nino", "plate"):
-            keys = (value_key, "locale", "state", "region", "fictional_method")
+        elif value_key in ("ssn", "nino", "plate", "phone", "address"):
+            keys = (value_key, "locale", "chain", "profile", "state", "region", "fictional_method")
             normalized = [{key: row[key] for key in keys if key in row} for row in normalized]
         table = Table(header_style="bold cyan", show_lines=len(normalized[0]) > 5)
         for key in normalized[0]:

@@ -2,8 +2,8 @@
 
 A Python CLI for fictional identifiers and character records for murder mystery
 games and props. Includes Norwegian identifiers, US Social Security numbers and
-California plates, UK National Insurance numbers and GB plates, and Norwegian,
-US, and England names. Runs offline, with Rich output and JSON/CSV exports.
+California plates, UK National Insurance numbers and GB plates, Norwegian/US/UK
+fictional phones, impossible crypto addresses, and Norwegian, US, and England names. Runs offline, with Rich output and JSON/CSV exports.
 
 ## Proudly sponsored by CaseClosed
 
@@ -38,6 +38,73 @@ uvx norwegian-fake-data phone --international --style compact
 Numbers come from Nkom's reserved TV/film range, `68050000–68059999`.
 Choose spaced output (`68 05 12 34`) or compact output (`68051234`), with an
 optional `+47` prefix.
+
+### US and UK phones (unreleased)
+
+Run these additions from this checkout with `uv run`; published version 0.4.0
+supports Norwegian phones only.
+
+```console
+uv run norwegian-fake-data phone --locale us --area-code 212
+uv run norwegian-fake-data phone --locale us --area-code 415 --international
+uv run norwegian-fake-data phone --locale uk
+uv run norwegian-fake-data phone --locale uk --kind landline --city london
+uv run norwegian-fake-data phone --locale uk --international --style compact
+```
+
+Norway remains the default, with its existing seed results. US output defaults to
+area code `212`, with a reserved `555-0100`–`555-0199` suffix (100 unique numbers
+per area code). Reviewed area codes are `212`, `213`, `310`, `323`, `408`, `415`,
+`424`, `628`, `646`, `650`, `669`, and `917`. This is a curated selection, not a
+complete US directory. Other area codes are rejected; arbitrary `555` numbers
+outside the reserved block may be real.
+
+UK output defaults to mobile `07700 900000`–`07700 900999`. Choose
+`--kind landline` for generic `01632 960000`–`01632 960999`, or supply a city:
+`leeds`, `sheffield`, `nottingham`, `leicester`, `bristol`, `reading`, `birmingham`,
+`edinburgh`, `glasgow`, `liverpool`, `manchester`, `london`, `tyneside`,
+`northern-ireland`, or `cardiff`. `tyneside` also covers Durham/Sunderland.
+Each UK profile contains 1,000 unique numbers. City names are case-insensitive;
+`northern ireland` is also accepted. A city requires `--kind landline`.
+
+Spaced output uses local grouping, such as `212 555 0123`, `07700 900123`, and
+`020 7946 0123`. International output adds `+1` or `+44` and drops the UK's
+domestic leading zero (`+44 7700 900123`, compact `+447700900123`).
+`--area-code` applies only to US phones; `--kind` and `--city` apply only to UK
+phones. Incompatible options and excessive unique counts fail before output.
+
+Phones use regulator-designated fictional ranges and may pass format validators.
+They are not structurally invalid strings. Phone JSON/CSV now include locale,
+profile, area code/city, fictional method, source URLs, and verification date;
+plain output remains one number per line.
+
+## Impossible crypto addresses (unreleased)
+
+```console
+uv run norwegian-fake-data wallet --chain ethereum --count 5
+uv run norwegian-fake-data wallet --chain bitcoin --seed 42 --unique --count 10
+uv run norwegian-fake-data wallet --chain monero --format json
+```
+
+`--chain` is required. All three profiles preserve recognizable mainnet prefixes
+and lengths, and deliberately insert one character outside the format's alphabet:
+
+| Chain | Supported appearance | Deliberate invalidity |
+| --- | --- | --- |
+| Ethereum | `0x` plus 40 characters (42 total) | One `g` in the body, outside hexadecimal |
+| Bitcoin | SegWit P2WPKH `bc1q…` (42 total) | One `b` in the body, outside Bech32 |
+| Monero | Standard `4…` (95 total) | One `0` in the body, outside Monero Base58 |
+
+The forbidden character is always inside the body; strict address decoding fails.
+These are fictional display strings, not usable addresses. Random valid addresses,
+burn addresses, and incorrect Ethereum checksum capitalization do not provide this
+guarantee. No private keys are generated, and no blockchain access is performed.
+Other Bitcoin address types and Monero subaddresses/integrated addresses are not
+currently supported.
+
+Use `--count`, `--seed`, `--unique`, and `--format rich|plain|json|csv` as with
+other identifiers. JSON/CSV include `address`, `chain`, `address_type`,
+`fictional_method`, `invalid_reason`, `source_url`, and `verified_on`.
 
 ## Fødselsnummer
 
@@ -315,9 +382,9 @@ uvx norwegian-fake-data person --name-locale us --age 42 --as-of 2026-11-02 --se
 
 `person --locale no` explicitly selects the current Norwegian character record.
 `person --locale us` and `person --locale uk` fail with an explanation: full
-international records are deferred until corresponding fictional phone profiles
-are ready. Use `ssn`, `nino`, and international `plate` independently in the
-meantime; changing `--name-locale` continues to affect names only.
+international records still need country-specific schemas and identifier
+integration. Use `ssn`, `nino`, international `phone`, and `plate` independently;
+changing `--name-locale` continues to affect names only.
 
 Norwegian seeded names and identifiers are preserved from version 0.2.0.
 Version 0.3.1 adds provenance columns to name/person JSON and CSV exports (and
@@ -354,12 +421,17 @@ from norwegian_fake_data import generate_fnrs, generate_people, generate_phones,
 
 from norwegian_fake_data import generate_names
 from norwegian_fake_data import generate_ninos, generate_plate_records, generate_ssns
+from norwegian_fake_data import generate_phone_records, generate_wallet_addresses
 
 names = generate_names(10, age=70, as_of=date(2026, 10, 21), category="female", seed=73)
 us_names = generate_names(
     10, age=42, as_of=date(2026, 11, 2), name_locale="us", background="higher", seed=73
 )
 phones = generate_phones(5, seed=42, unique=True)
+us_phones = generate_phones(5, locale="us", area_code="415", seed=42)
+uk_phones = generate_phones(5, locale="uk", international=True, seed=42)
+phone_records = generate_phone_records(5, locale="uk", kind="landline", city="london")
+wallets = generate_wallet_addresses(10, chain="ethereum", seed=42, unique=True)
 plates = generate_plates(5, seed=42, prefix="QA")
 records = generate_fnrs(age=35, as_of=date(2026, 10, 6), seed=42)
 characters = generate_people(6, age=42, seed=73, vehicle=True, unique=True)
@@ -377,6 +449,11 @@ gb_plates = generate_plate_records(
 print(records[0].fnr, records[0].birthday)
 ```
 
+`generate_phones()` and `generate_wallet_addresses()` return strings.
+`generate_phone_records()` and `generate_wallet_address_records()` return frozen
+records with provenance (the latter is also exported from `norwegian_fake_data`).
+The international phone and wallet APIs above are unreleased additions.
+
 ## Data sources
 
 - [SSB table 10467](https://www.ssb.no/statbank/table/10467): first-name percentages by year, 1880–2025.
@@ -393,6 +470,15 @@ print(records[0].fnr, records[0].birthday)
   See [international data attribution and refresh instructions](src/norwegian_fake_data/data/INTERNATIONAL.md).
 
 - [Nkom's numbering plan](https://nkom.no/telefoni-og-telefonnummer/telefonnummer-og-den-norske-nummerplan/alle-nummerserier-for-norske-telefonnumre): the TV/film phone range.
+- [NANPA fictional 555 range](https://nanpa.com/numbering/555-line-numbers): US fictional lines.
+  Reviewed area codes come from [NANPA's annual report](https://www.nationalnanpa.com/reports/2015_NANPA_Annual_Report.pdf)
+  and [California CPUC's area-code table](https://www.cpuc.ca.gov/AreaCodes/).
+- [Ofcom drama numbers](https://www.ofcom.org.uk/phones-and-broadband/phone-numbers/numbers-for-drama): UK mobile and geographic profiles.
+- [Ethereum API address format](https://ethereum.github.io/execution-apis/api/methods/eth_accounts/),
+  [Bitcoin BIP-173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki),
+  and [Monero standard addresses](https://docs.getmonero.org/public-address/standard-address/):
+  address lengths, prefixes, and encoding alphabets. International phone and wallet
+  rules were reviewed on 2026-11-02 and are bundled for offline use.
 - [Statens vegvesen's plate series](https://www.vegvesen.no/kjoretoy/eie-og-vedlikeholde/skilt/skiltserier/): plate format and prefix selection.
 - [SSA fictional-number guidance](https://secure.ssa.gov/apps10/poms.nsf/links/0110201020): `000`-prefixed SSNs.
 - [HMRC National Insurance number rules](https://www.gov.uk/hmrc-internal-manuals/national-insurance-manual/nim39110): impossible `QQ` prefix and A–D suffixes.

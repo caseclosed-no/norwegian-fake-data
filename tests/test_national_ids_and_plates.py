@@ -191,7 +191,7 @@ def test_seed_rng_isolation_and_count_validation(generator, options):
 
 @pytest.mark.parametrize("locale", ["us", "uk", "invalid"])
 def test_person_locale_rejects_unsupported_full_records(locale):
-    with pytest.raises(ValueError, match="locale|phone profiles"):
+    with pytest.raises(ValueError, match="locale|record schemas"):
         generate_people(age=42, locale=locale, as_of=REFERENCE)
 
 
@@ -245,7 +245,7 @@ def test_cli_output_formats(command, options, key, locale, output):
             "after",
         ),
         (["plate", "--locale", "us", "--state", "CA", "--count", "27001", "--unique"], "27,000"),
-        (["person", "--locale", "us", "--age", "42"], "phone profiles"),
+        (["person", "--locale", "us", "--age", "42"], "record schemas"),
         (["ssn", "--mode", "valid"], "No such option"),
         (["nino", "--prefix", "AB"], "No such option"),
     ],
